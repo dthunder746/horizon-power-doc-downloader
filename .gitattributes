@@ -1,0 +1,4 @@
+# The .cmd is served verbatim via raw.githubusercontent.com and run by Windows
+# cmd.exe, which needs CRLF line endings. Treat it as binary so git stores the
+# exact bytes (CRLF) and never normalizes to LF.
+*.cmd -text

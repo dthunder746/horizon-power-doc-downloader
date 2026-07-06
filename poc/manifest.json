@@ -1,0 +1,26 @@
+{
+  "generated_at": "2026-07-06T00:00:00Z",
+  "source_url": "https://www.horizonpower.com.au/contractors-installers/manuals-standards/",
+  "document_count": 1,
+  "note": "POC smoke-test manifest - one small document only.",
+  "tabs": [
+    {
+      "name": "Manuals",
+      "folder": "Manuals",
+      "tables": [
+        {
+          "name": "Technical Rules",
+          "folder": "Technical Rules",
+          "documents": [
+            {
+              "title": "Guidance note - Application of the Harmonised Technical Rules and Horizon Power Technical Rules",
+              "filename": "Guidance note - Application of the Harmonised Technical Rules.pdf",
+              "url": "https://www.horizonpower.com.au/globalassets/media/documents/manuals-standards/technical-rules/guidance-note---application-of-the-harmonised-technical-rules-and-horizon-power-technical-rules.pdf",
+              "size_label": "0.09 MB"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
