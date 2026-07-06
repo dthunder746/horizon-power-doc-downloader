@@ -120,3 +120,42 @@ test('buildManifest falls back to Uncategorised for a table with no title', () =
   assert.equal(table.name, 'Uncategorised');
   assert.equal(table.folder, 'Uncategorised');
 });
+
+// A title long enough to blow the Windows 260-char path budget must be
+// truncated (extension preserved) so the full download path fits. pathReserve
+// stands in for the unknown base install dir; injected so the test pins the math.
+test('buildManifest truncates a filename that would overflow the path budget', () => {
+  const longTitle = 'A'.repeat(300);
+  const raw = {
+    sourceUrl: 'https://example.test/',
+    tabs: [
+      {
+        name: 'Manuals',
+        tables: [
+          {
+            title: 'Standards',
+            documents: [
+              { title: longTitle, url: 'https://example.test/x.pdf', sizeLabel: '1 MB' },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  const pathReserve = 80;
+  const doc = buildManifest(raw, { generatedAt: '2026-07-06T00:00:00Z', pathReserve })
+    .tabs[0].tables[0].documents[0];
+
+  // Reconstruct the path the .cmd builds: base\Horizon Power Documents\tab\table\file
+  const fullPathLen =
+    pathReserve +
+    'Horizon Power Documents\\'.length +
+    'Manuals\\'.length +
+    'Standards\\'.length +
+    doc.filename.length;
+
+  assert.ok(fullPathLen <= 260, `full path length ${fullPathLen} must be <= 260`);
+  assert.ok(doc.filename.endsWith('.pdf'), `extension preserved: got "${doc.filename}"`);
+  assert.ok(doc.filename.length < longTitle.length, 'filename was shortened');
+});
