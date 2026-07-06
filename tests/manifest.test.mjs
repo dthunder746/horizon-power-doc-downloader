@@ -59,3 +59,64 @@ test('buildManifest turns a single-document scrape into the manifest shape', () 
     ],
   });
 });
+
+// Two documents in one table that resolve to the same filename must be
+// disambiguated within that folder: the second becomes " (2)". Different
+// source URLs, same title -> same base filename -> collision.
+test('buildManifest dedupes colliding filenames within a table', () => {
+  const raw = {
+    sourceUrl: 'https://example.test/',
+    tabs: [
+      {
+        name: 'Manuals',
+        tables: [
+          {
+            title: 'Standards',
+            documents: [
+              { title: 'Report', url: 'https://example.test/a/report.pdf', sizeLabel: '1 MB' },
+              { title: 'Report', url: 'https://example.test/b/report.pdf', sizeLabel: '2 MB' },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  const manifest = buildManifest(raw, { generatedAt: '2026-07-06T00:00:00Z' });
+  const docs = manifest.tabs[0].tables[0].documents;
+
+  assert.equal(manifest.document_count, 2);
+  assert.deepEqual(
+    docs.map((d) => d.filename),
+    ['Report.pdf', 'Report (2).pdf'],
+  );
+  // Dedupe must not disturb the url/title/size mapping.
+  assert.equal(docs[1].url, 'https://example.test/b/report.pdf');
+  assert.equal(docs[1].title, 'Report');
+});
+
+// A table with no detectable heading (unsolved title-selector recon item) must
+// not produce a null/empty name or folder: both fall back to "Uncategorised".
+test('buildManifest falls back to Uncategorised for a table with no title', () => {
+  const raw = {
+    sourceUrl: 'https://example.test/',
+    tabs: [
+      {
+        name: 'Manuals',
+        tables: [
+          {
+            title: null,
+            documents: [
+              { title: 'Doc', url: 'https://example.test/doc.pdf', sizeLabel: '1 MB' },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  const table = buildManifest(raw, { generatedAt: '2026-07-06T00:00:00Z' }).tabs[0].tables[0];
+
+  assert.equal(table.name, 'Uncategorised');
+  assert.equal(table.folder, 'Uncategorised');
+});

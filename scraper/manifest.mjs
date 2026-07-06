@@ -1,6 +1,6 @@
 // buildManifest: compose the pure transforms into the manifest.json shape that
 // the downloader .cmd consumes (see poc/manifest.json). No Playwright, no network.
-import { sanitizeName, tableFolderName } from './transforms.mjs';
+import { sanitizeName, tableFolderName, dedupeNames } from './transforms.mjs';
 
 // Extension (including the dot) from a document URL, e.g. ".pdf". Empty if none.
 function extensionFromUrl(url) {
@@ -21,19 +21,32 @@ export function buildManifest(raw, { generatedAt = new Date().toISOString() } = 
   const tabs = raw.tabs.map((tab) => ({
     name: tab.name,
     folder: sanitizeName(tab.name),
-    tables: tab.tables.map((table) => ({
-      name: table.title,
-      folder: tableFolderName(table.title),
-      documents: table.documents.map((doc) => {
-        documentCount++;
-        return {
-          title: doc.title,
-          filename: sanitizeName(doc.title) + extensionFromUrl(doc.url),
-          url: doc.url,
-          size_label: doc.sizeLabel,
-        };
-      }),
-    })),
+    tables: tab.tables.map((table) => {
+      // Derive each document's base filename, then disambiguate collisions
+      // within this folder before emitting.
+      const baseNames = table.documents.map(
+        (doc) => sanitizeName(doc.title) + extensionFromUrl(doc.url),
+      );
+      const filenames = dedupeNames(baseNames);
+
+      // name is the human display heading; folder is its filesystem-safe form.
+      // Both share the "Uncategorised" fallback when no heading was detected.
+      const displayName = String(table.title ?? '').trim() || 'Uncategorised';
+
+      return {
+        name: displayName,
+        folder: tableFolderName(table.title),
+        documents: table.documents.map((doc, i) => {
+          documentCount++;
+          return {
+            title: doc.title,
+            filename: filenames[i],
+            url: doc.url,
+            size_label: doc.sizeLabel,
+          };
+        }),
+      };
+    }),
   }));
 
   return {
