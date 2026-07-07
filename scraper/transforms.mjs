@@ -88,18 +88,46 @@ export function isHorizonPowerDocument(url) {
 }
 
 /**
- * Return a copy of a raw scrape object keeping only Horizon Power documents
- * (see isHorizonPowerDocument). Tables left with no documents, and tabs left
- * with no tables, are dropped so the manifest never yields empty folders. The
- * input object is not mutated.
+ * True when a URL points at the scraped page itself (the source page), ignoring
+ * any "#" fragment, query string, and trailing slash. Used to drop the page's
+ * self-links and in-page anchors, which are noise rather than references.
+ * Never throws; malformed input returns false.
  */
-export function filterDocuments(raw) {
+export function isSourcePageLink(url, sourceUrl) {
+  let a, b;
+  try {
+    a = new URL(String(url));
+    b = new URL(String(sourceUrl));
+  } catch {
+    return false;
+  }
+  const page = (u) => u.hostname.toLowerCase() + u.pathname.replace(/\/+$/, '').toLowerCase();
+  return page(a) === page(b);
+}
+
+/**
+ * Classify every scraped entry and return a copy of the raw object with a `type`
+ * on each surviving document:
+ *   - Horizon Power files (isHorizonPowerDocument) -> type 'document' (downloaded).
+ *   - The page's own self-links and in-page anchors -> dropped entirely.
+ *   - Everything else (external references, browser-only HP folder URLs) ->
+ *     type 'shortcut' (saved as a Windows .url by the downloader).
+ * Tables left with no entries, and tabs left with no tables, are dropped so the
+ * manifest never yields empty folders. The input object is not mutated.
+ */
+export function classifyDocuments(raw) {
   const tabs = raw.tabs
     .map((tab) => {
       const tables = tab.tables
         .map((table) => ({
           ...table,
-          documents: table.documents.filter((doc) => isHorizonPowerDocument(doc.url)),
+          documents: table.documents
+            .map((doc) => {
+              if (isHorizonPowerDocument(doc.url)) return { ...doc, type: 'document' };
+              if (isSourcePageLink(doc.url, raw.sourceUrl)) return null; // self-referential
+              return { ...doc, type: 'shortcut' };
+            })
+            .filter(Boolean),
         }))
         .filter((table) => table.documents.length > 0);
       return { ...tab, tables };

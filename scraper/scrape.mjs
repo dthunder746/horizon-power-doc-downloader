@@ -18,7 +18,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { buildManifest } from './manifest.mjs';
-import { filterDocuments } from './transforms.mjs';
+import { classifyDocuments } from './transforms.mjs';
 
 const SOURCE_URL =
   'https://www.horizonpower.com.au/contractors-installers/manuals-standards/';
@@ -107,8 +107,13 @@ function extractRaw() {
 // Best-effort reachability check on every document URL. Informational only:
 // the maintainer reviews the dead-link report before committing; it never blocks.
 async function checkLinks(raw) {
+  // Only validate documents we actually download. Shortcut targets are external
+  // reference pages (and browser-only HP URLs); they are never fetched by the
+  // downloader, and probing them just adds rate-limited noise to the report.
   const urls = raw.tabs.flatMap((t) =>
-    t.tables.flatMap((tbl) => tbl.documents.map((d) => d.url)),
+    t.tables.flatMap((tbl) =>
+      tbl.documents.filter((d) => d.type !== 'shortcut').map((d) => d.url),
+    ),
   );
   const dead = [];
   const CONCURRENCY = 8;
@@ -154,12 +159,21 @@ async function main() {
     await browser.close();
   }
 
-  // Keep only Horizon Power documents (globalassets files). The page also links
-  // to external references and its own HTML pages; those are not shipped.
-  const raw = filterDocuments(rawAll);
-  const countDocs = (r) =>
+  // Classify entries: HP files are downloaded documents, external/browser-only
+  // references become .url shortcuts, and the page's own self-links are dropped.
+  const raw = classifyDocuments(rawAll);
+  const countEntries = (r) =>
     r.tabs.reduce((n, t) => n + t.tables.reduce((m, tbl) => m + tbl.documents.length, 0), 0);
-  const dropped = countDocs(rawAll) - countDocs(raw);
+  const shortcutCount = raw.tabs.reduce(
+    (n, t) =>
+      n +
+      t.tables.reduce(
+        (m, tbl) => m + tbl.documents.filter((d) => d.type === 'shortcut').length,
+        0,
+      ),
+    0,
+  );
+  const selfLinksDropped = countEntries(rawAll) - countEntries(raw);
 
   const manifest = buildManifest(raw);
 
@@ -174,7 +188,8 @@ async function main() {
   console.log('');
   console.log(`Tabs found:      ${raw.tabs.map((t) => t.name).join(', ')}`);
   console.log(`Document count:  ${manifest.document_count} (baseline ~${BASELINE_DOCS})`);
-  console.log(`Non-HP entries dropped (external links, HTML pages, folder URLs): ${dropped}`);
+  console.log(`Web shortcuts:   ${shortcutCount} (non-HP references saved as .url files)`);
+  console.log(`Self-links dropped: ${selfLinksDropped} (links back to the source page itself)`);
 
   const drift = Math.abs(manifest.document_count - BASELINE_DOCS) / BASELINE_DOCS;
   if (drift > DRIFT_TOLERANCE) {

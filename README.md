@@ -56,6 +56,11 @@ Horizon Power Documents\
   Industry resources\
 ```
 
+A few entries are references that Horizon Power hosts elsewhere (external
+standards, other agencies). Those arrive as small web shortcut files (ending in
+`.url`) in the same folders. Double-click one to open the reference in your
+browser rather than as a saved file.
+
 Running the Downloader again refreshes the files in place. It overwrites the old
 copies with the current versions rather than making duplicates, so you always end
 up with a clean, current set.
@@ -103,13 +108,20 @@ pick up the change.
 
 ### What counts as a document
 
-The scraper keeps only files that Horizon Power hosts itself (URLs under
-`horizonpower.com.au/globalassets/`). The source page also links to outside
-references (other standards bodies, other WA government sites) and to its own
-HTML pages. Those are not Horizon Power documents, so they are left out. The rule
-lives in `isHorizonPowerDocument` in `scraper/transforms.mjs`. If a future run
-drops the count sharply, a page selector probably changed, so check the scraper
-before committing.
+The scraper classifies every entry on the page (`classifyDocuments` in
+`scraper/transforms.mjs`):
+
+* Files that Horizon Power hosts itself (URLs under
+  `horizonpower.com.au/globalassets/`) are downloaded as documents.
+* Outside references (other standards bodies, other WA government sites) and
+  Horizon Power URLs that only open in a browser are saved as `.url` web
+  shortcuts in the same folder, so nothing is silently lost.
+* Links that just point back at the source page itself (the page and its in-page
+  anchors) are dropped.
+
+The run prints the document count, the shortcut count, and how many self-links
+were dropped. If a future run drops the document count sharply, a page selector
+probably changed, so check the scraper before committing.
 
 ### Version bumps
 

@@ -144,6 +144,7 @@ if (-not $baseDir) { $baseDir = (Get-Location).Path }
 $root       = Join-Path $baseDir 'Horizon Power Documents'
 $errorsPath = Join-Path $baseDir 'download-errors.txt'
 $downloaded = 0
+$shortcuts  = 0
 $failed     = 0
 $errors     = New-Object System.Collections.Generic.List[string]
 
@@ -155,6 +156,20 @@ foreach ($tab in $selected) {
         New-Item -ItemType Directory -Path $outDir -Force | Out-Null
         foreach ($doc in @($table.documents)) {
             $target = Join-Path $outDir $doc.filename
+            if ($doc.type -eq 'shortcut') {
+                # A non-HP reference: save a clickable Windows Internet Shortcut
+                # (.url) in place of downloading. The browser opens the target.
+                try {
+                    Set-Content -LiteralPath $target -Value @('[InternetShortcut]', ('URL=' + $doc.url)) -Encoding ASCII
+                    $shortcuts++
+                    Write-Host ("  [URL] {0}" -f $doc.filename) -ForegroundColor Green
+                } catch {
+                    $failed++
+                    $errors.Add(("{0}\{1} | {2} | {3}" -f $table.folder, $doc.filename, $doc.url, $_.Exception.Message))
+                    Write-Host ("  [ERR] {0}" -f $doc.filename) -ForegroundColor Red
+                }
+                continue
+            }
             $tmp    = "$target.part"
             $ok     = $false
             $lastMsg = ''
@@ -193,7 +208,7 @@ if ($errors.Count -gt 0) {
 # --- Summary ----------------------------------------------------------------
 Write-Host ''
 Write-Host '===================================================' -ForegroundColor Cyan
-Write-Host (" Downloaded: {0}   Failed: {1}" -f $downloaded, $failed)
+Write-Host (" Downloaded: {0}   Shortcuts: {1}   Failed: {2}" -f $downloaded, $shortcuts, $failed)
 if ($failed -gt 0) {
     Write-Host (" See {0} for the {1} failed item(s)." -f $errorsPath, $failed) -ForegroundColor Yellow
 }

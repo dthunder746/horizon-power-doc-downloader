@@ -95,6 +95,50 @@ test('buildManifest dedupes colliding filenames within a table', () => {
   assert.equal(docs[1].title, 'Report');
 });
 
+// A shortcut entry (type: 'shortcut') is a non-HP reference saved as a Windows
+// Internet Shortcut. Its filename is forced to .url (not derived from the URL,
+// which may be an extensionless page), it carries type: 'shortcut', and it does
+// NOT count toward document_count.
+test('buildManifest gives shortcut entries a .url filename and excludes them from document_count', () => {
+  const raw = {
+    sourceUrl: 'https://example.test/',
+    tabs: [
+      {
+        name: 'Industry resources',
+        tables: [
+          {
+            title: 'Useful resources',
+            documents: [
+              {
+                title: 'WASIR',
+                url: 'https://www.horizonpower.com.au/globalassets/wasir.pdf',
+                sizeLabel: '1 MB',
+                type: 'document',
+              },
+              {
+                title: 'Australian Standards',
+                url: 'https://www.intertekinform.com/en-au/',
+                sizeLabel: '',
+                type: 'shortcut',
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  const manifest = buildManifest(raw, { generatedAt: '2026-07-06T00:00:00Z' });
+  const docs = manifest.tabs[0].tables[0].documents;
+
+  assert.equal(manifest.document_count, 1, 'shortcuts do not count as documents');
+  assert.equal(docs[0].filename, 'WASIR.pdf');
+  assert.ok(!('type' in docs[0]), 'a document entry carries no type field');
+  assert.equal(docs[1].filename, 'Australian Standards.url');
+  assert.equal(docs[1].type, 'shortcut');
+  assert.equal(docs[1].url, 'https://www.intertekinform.com/en-au/');
+});
+
 // A table with no detectable heading (unsolved title-selector recon item) must
 // not produce a null/empty name or folder: both fall back to "Uncategorised".
 test('buildManifest falls back to Uncategorised for a table with no title', () => {

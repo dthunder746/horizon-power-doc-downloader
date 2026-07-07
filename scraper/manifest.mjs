@@ -46,11 +46,16 @@ export function buildManifest(
           (tabFolder.length + 1) -
           (tableFolder.length + 1);
 
+        // A shortcut entry is saved as a Windows Internet Shortcut, so its
+        // extension is forced to .url; a document's extension comes from its URL.
+        const extensionFor = (doc) =>
+          doc.type === 'shortcut' ? '.url' : extensionFromUrl(doc.url);
+
         // Truncate each name to the budget first, then dedupe. Truncating after
         // dedupe could chop a " (2)" suffix and re-collide (silent overwrite);
         // this order only risks a few chars of slack against the reserve.
         const baseNames = table.documents.map((doc) =>
-          truncateFilename(sanitizeName(doc.title) + extensionFromUrl(doc.url), budget),
+          truncateFilename(sanitizeName(doc.title) + extensionFor(doc), budget),
         );
         const filenames = dedupeNames(baseNames);
 
@@ -62,13 +67,20 @@ export function buildManifest(
           name: displayName,
           folder: tableFolder,
           documents: table.documents.map((doc, i) => {
-            documentCount++;
-            return {
+            const entry = {
               title: doc.title,
               filename: filenames[i],
               url: doc.url,
               size_label: doc.sizeLabel,
             };
+            // Only shortcuts carry a type; a plain document stays untagged so the
+            // manifest shape and count are unchanged for the common case.
+            if (doc.type === 'shortcut') {
+              entry.type = 'shortcut';
+            } else {
+              documentCount++;
+            }
+            return entry;
           }),
         };
       }),

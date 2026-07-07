@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-07T00:57:30.359Z",
+  "generated_at": "2026-07-07T01:18:33.057Z",
   "source_url": "https://www.horizonpower.com.au/contractors-installers/manuals-standards/",
   "document_count": 152,
   "tabs": [
@@ -606,6 +606,20 @@
               "size_label": "1.00 MB"
             },
             {
+              "title": "AMS 2023/001 – Post Insulator Clamp",
+              "filename": "AMS 2023_001 – Post Insulator Clamp.url",
+              "url": "https://www.horizonpower.com.au/globalassets/media/documents/manuals-standards/interim-instructions/AMS_2023-001/",
+              "size_label": "",
+              "type": "shortcut"
+            },
+            {
+              "title": "AMS 2023/002 – RMU and SF6 disposal - Hazard",
+              "filename": "AMS 2023_002 – RMU and SF6 disposal - Hazard.url",
+              "url": "https://www.horizonpower.com.au/globalassets/media/documents/manuals-standards/interim-instructions/AMS_2023-002/",
+              "size_label": "",
+              "type": "shortcut"
+            },
+            {
               "title": "AMS 2020/001 - Application of LV spreaders",
               "filename": "AMS 2020_001 - Application of LV spreaders.pdf",
               "url": "https://www.horizonpower.com.au/globalassets/media/documents/manuals-standards/interim-instructions/interim-instruction-ams-2020_001-application-of-lv-spreaders-221020.pdf",
@@ -1055,6 +1069,48 @@
           "name": "Useful resources",
           "folder": "Useful resources",
           "documents": [
+            {
+              "title": "Australian Standards",
+              "filename": "Australian Standards.url",
+              "url": "https://www.intertekinform.com/en-au/",
+              "size_label": "",
+              "type": "shortcut"
+            },
+            {
+              "title": "Building and Energy",
+              "filename": "Building and Energy.url",
+              "url": "http://www.commerce.wa.gov.au/EnergySafety/",
+              "size_label": "",
+              "type": "shortcut"
+            },
+            {
+              "title": "Code of Practice - Persons working on or near energised electrical installations",
+              "filename": "Code of Practice - Persons working on or near energised electrical installations.url",
+              "url": "https://www.commerce.wa.gov.au/building-and-energy/code-practice-persons-working-or-near-energised-electrical-installations",
+              "size_label": "",
+              "type": "shortcut"
+            },
+            {
+              "title": "Code of Practice - Inspectors (Electricity)",
+              "filename": "Code of Practice - Inspectors (Electricity).url",
+              "url": "https://www.commerce.wa.gov.au/building-and-energy/code-practice-inspectors-electricity",
+              "size_label": "",
+              "type": "shortcut"
+            },
+            {
+              "title": "Code of Practice - Utility Providers",
+              "filename": "Code of Practice - Utility Providers.url",
+              "url": "https://www.mainroads.wa.gov.au/technical-commercial/technical-library/road-traffic-engineering/roadside-items/guidelines-for-roadside-services/technical-guidelines-for-utility-provider-facilities/",
+              "size_label": "",
+              "type": "shortcut"
+            },
+            {
+              "title": "WA Electrical Requirements (WAER)",
+              "filename": "WA Electrical Requirements (WAER).url",
+              "url": "http://www.docep.wa.gov.au/EnergySafety/PDF/Publications/WA_Electrical_Requirements.pdf",
+              "size_label": "",
+              "type": "shortcut"
+            },
             {
               "title": "WA Service and Installation Requirements WASIR",
               "filename": "WA Service and Installation Requirements WASIR.pdf",

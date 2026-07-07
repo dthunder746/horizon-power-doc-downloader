@@ -9,7 +9,8 @@ import {
   dedupeNames,
   tableFolderName,
   isHorizonPowerDocument,
-  filterDocuments,
+  isSourcePageLink,
+  classifyDocuments,
 } from '../scraper/transforms.mjs';
 
 test('sanitizeName replaces Windows-illegal characters', () => {
@@ -118,9 +119,24 @@ test('isHorizonPowerDocument returns false for malformed input rather than throw
   }
 });
 
-test('filterDocuments keeps only HP documents and drops emptied tables and tabs', () => {
+test('isSourcePageLink matches the scraped page itself, ignoring fragment and trailing slash', () => {
+  const src = 'https://www.horizonpower.com.au/contractors-installers/manuals-standards/';
+  assert.ok(isSourcePageLink('https://www.horizonpower.com.au/contractors-installers/manuals-standards/', src));
+  assert.ok(isSourcePageLink('https://www.horizonpower.com.au/contractors-installers/manuals-standards/#metering', src));
+  assert.ok(isSourcePageLink('https://www.horizonpower.com.au/contractors-installers/manuals-standards', src));
+  // A different page or an actual document is not a self-link.
+  assert.equal(isSourcePageLink('https://www.horizonpower.com.au/globalassets/x.pdf', src), false);
+  assert.equal(isSourcePageLink('https://www.intertekinform.com/en-au/', src), false);
+});
+
+test('isSourcePageLink returns false for malformed input rather than throwing', () => {
+  assert.equal(isSourcePageLink(null, 'https://x/'), false);
+  assert.equal(isSourcePageLink('https://x/', undefined), false);
+});
+
+test('classifyDocuments tags HP files as documents, other refs as shortcuts, and drops self-links', () => {
   const raw = {
-    sourceUrl: 'https://example/',
+    sourceUrl: 'https://www.horizonpower.com.au/contractors-installers/manuals-standards/',
     tabs: [
       {
         name: 'Manuals',
@@ -128,8 +144,8 @@ test('filterDocuments keeps only HP documents and drops emptied tables and tabs'
           {
             title: 'Interim Instructions',
             documents: [
-              { title: 'good', url: 'https://www.horizonpower.com.au/globalassets/a.pdf', sizeLabel: '' },
-              { title: 'folder', url: 'https://www.horizonpower.com.au/globalassets/b/', sizeLabel: '' },
+              { title: 'hp file', url: 'https://www.horizonpower.com.au/globalassets/a.pdf', sizeLabel: '' },
+              { title: 'browser only', url: 'https://www.horizonpower.com.au/globalassets/b/', sizeLabel: '' },
             ],
           },
         ],
@@ -140,7 +156,9 @@ test('filterDocuments keeps only HP documents and drops emptied tables and tabs'
           {
             title: 'Useful resources',
             documents: [
-              { title: 'ext', url: 'https://www.intertekinform.com/en-au/', sizeLabel: '' },
+              { title: 'external', url: 'https://www.intertekinform.com/en-au/', sizeLabel: '' },
+              { title: 'self link', url: 'https://www.horizonpower.com.au/contractors-installers/manuals-standards/', sizeLabel: '' },
+              { title: 'anchor', url: 'https://www.horizonpower.com.au/contractors-installers/manuals-standards/#metering', sizeLabel: '' },
             ],
           },
         ],
@@ -148,14 +166,38 @@ test('filterDocuments keeps only HP documents and drops emptied tables and tabs'
     ],
   };
 
-  const out = filterDocuments(raw);
-  assert.equal(out.tabs.length, 1, 'the all-external tab is dropped entirely');
-  assert.equal(out.tabs[0].name, 'Manuals');
-  assert.equal(out.tabs[0].tables.length, 1);
+  const out = classifyDocuments(raw);
+
+  // Manuals: the HP file is a document; the folder-style HP URL becomes a shortcut.
   assert.deepEqual(
-    out.tabs[0].tables[0].documents.map((d) => d.title),
-    ['good'],
+    out.tabs[0].tables[0].documents.map((d) => [d.title, d.type]),
+    [['hp file', 'document'], ['browser only', 'shortcut']],
+  );
+  // Industry resources: only the external link survives, as a shortcut; the two
+  // self-referential entries are dropped entirely.
+  assert.deepEqual(
+    out.tabs[1].tables[0].documents.map((d) => [d.title, d.type]),
+    [['external', 'shortcut']],
   );
   // Input is not mutated.
-  assert.equal(raw.tabs[0].tables[0].documents.length, 2);
+  assert.equal(raw.tabs[1].tables[0].documents.length, 3);
+});
+
+test('classifyDocuments drops tables and tabs left empty after removing self-links', () => {
+  const raw = {
+    sourceUrl: 'https://src/page/',
+    tabs: [
+      {
+        name: 'Only self-links',
+        tables: [
+          {
+            title: 'T',
+            documents: [{ title: 's', url: 'https://src/page/#x', sizeLabel: '' }],
+          },
+        ],
+      },
+    ],
+  };
+  const out = classifyDocuments(raw);
+  assert.equal(out.tabs.length, 0);
 });
