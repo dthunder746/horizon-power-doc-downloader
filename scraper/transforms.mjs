@@ -58,6 +58,56 @@ export function dedupeNames(names) {
   });
 }
 
+// Hosts whose files we ship. The scraped page links out to external references
+// (standards bodies, other WA gov sites) and back to its own HTML pages; those
+// are not Horizon Power documents and are excluded. See ADR / PRD scope.
+const HP_DOMAIN = 'horizonpower.com.au';
+// A URL that names a downloadable file: its path ends in a short extension.
+// Folder-style URLs ending in "/" (which 403 for a non-browser client) have no
+// extension and are excluded.
+const FILE_EXTENSION = /\.[a-z0-9]{1,5}$/i;
+
+/**
+ * True when a scraped URL points at an actual Horizon Power document: a file
+ * (path ends in an extension) hosted on horizonpower.com.au under /globalassets/.
+ * Everything else (external links, HP HTML pages, "#" anchors, folder-style URLs)
+ * is excluded. Never throws; malformed input returns false.
+ */
+export function isHorizonPowerDocument(url) {
+  let parsed;
+  try {
+    parsed = new URL(String(url));
+  } catch {
+    return false;
+  }
+  const host = parsed.hostname.toLowerCase();
+  const onHpDomain = host === HP_DOMAIN || host.endsWith(`.${HP_DOMAIN}`);
+  if (!onHpDomain) return false;
+  if (!parsed.pathname.toLowerCase().includes('/globalassets/')) return false;
+  return FILE_EXTENSION.test(parsed.pathname);
+}
+
+/**
+ * Return a copy of a raw scrape object keeping only Horizon Power documents
+ * (see isHorizonPowerDocument). Tables left with no documents, and tabs left
+ * with no tables, are dropped so the manifest never yields empty folders. The
+ * input object is not mutated.
+ */
+export function filterDocuments(raw) {
+  const tabs = raw.tabs
+    .map((tab) => {
+      const tables = tab.tables
+        .map((table) => ({
+          ...table,
+          documents: table.documents.filter((doc) => isHorizonPowerDocument(doc.url)),
+        }))
+        .filter((table) => table.documents.length > 0);
+      return { ...tab, tables };
+    })
+    .filter((tab) => tab.tables.length > 0);
+  return { ...raw, tabs };
+}
+
 /**
  * Folder name for a scraped table. Some tables have no detectable heading
  * (the title selector is an unsolved recon item); those fall back to
