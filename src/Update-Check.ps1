@@ -8,6 +8,11 @@
 # from GitHub raw and, if a newer version exists, prints a notice with a link.
 # The check is best-effort and must never block the actual downloads.
 
+# Everything between the BEGIN/END markers below is copied verbatim into the
+# shipping .cmd's PowerShell tail (ADR 0002: no dot-sourcing src/ at run time).
+# A Node drift test (tests/cmd-sync.test.mjs) normalizes whitespace and asserts
+# the two copies are identical, so editing one but not the other goes red.
+# >>> BEGIN EMBEDDED UPDATE-CHECK >>>
 function Test-UpdateAvailable {
     [CmdletBinding()]
     [OutputType([bool])]
@@ -44,3 +49,4 @@ function Get-UpdateNotice {
     $remoteTrim = ($remote -as [string]).Trim()
     return "A newer version ($remoteTrim) is available. Download it here:`n  $DownloadUrl"
 }
+# <<< END EMBEDDED UPDATE-CHECK <<<
